@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,21 +31,15 @@ public class SymmetricCipher {
     /*************************************************************************************/
     public byte[] encryptCBC (byte[] input, byte[] byteKey) throws Exception {
 
-        byte padding = (byte)0;
-        int lackingBlocks = 0;
+        byte padding;
+        int lackingBlocks;
 
         // Generate the plaintext with padding
-        lackingBlocks = (input.length % 16);
-        if(input.length < 16)
-            lackingBlocks = 16 - lackingBlocks;
-
-        if(lackingBlocks==0){
-            lackingBlocks = 16;
-        }
+        lackingBlocks = 16 - (input.length % 16);
 
         padding = (byte)lackingBlocks;
 
-        byte[] paddedInput = new byte[input.length+padding];
+        byte[] paddedInput = Arrays.copyOf(input,input.length+padding);
         for(int i = 0; i < lackingBlocks; i++){
             paddedInput[paddedInput.length-1-i] = padding;
         }
@@ -55,15 +50,13 @@ public class SymmetricCipher {
         byte[] cypheredOutput = new byte[paddedInput.length];
         s = new SymmetricEncryption(byteKey);
 
-        for(int i = 0; i < paddedInput.length/16; i=i+16) {
-            for (int j = 0; j < 16; j++) {
+        for(int i = 0; i < paddedInput.length-1; i=i+16) {
+            for (int j = 0; (j < 16) && (j+i) < paddedInput.length; j++) {
                 preCypheredBlock[j] = (byte)(paddedInput[i + j] ^ cypheredBlock[j]);
             }
             cypheredBlock = s.encryptBlock(preCypheredBlock);
 
-            for (int j = 0; j < 16; j++) {
-                cypheredOutput[i+j] = cypheredBlock[j];
-            }
+            System.arraycopy(cypheredBlock, 0, cypheredOutput, i, 16);
         }
         return cypheredOutput;
     }
@@ -82,7 +75,7 @@ public class SymmetricCipher {
         byte[] encryptedBlock = new byte[16];
         byte[] decryptedBlock;
 
-        for(int i = 0; i < input.length/16; i += 16){
+        for(int i = 0; i < input.length; i += 16){
             // obtain block to decrypt
             System.arraycopy(input, i, encryptedBlock, 0, 16);
 
@@ -91,35 +84,17 @@ public class SymmetricCipher {
 
             // apply xor operation with iv or previous encrypted block
             // include resulting block into decrypted text
-            for (int j = 0; j < 15; j++) {
+            for (int j = 0; j < 16; j++) {
                 decryptedText[j + i] = (byte) (decryptedBlock[j] ^ vector[j]);
             }
-            vector = encryptedBlock;
+            vector = encryptedBlock.clone();
         }
 
         // Eliminate the padding
-        boolean hasPadding = false;
         int lastBlockValue = decryptedText[decryptedText.length-1];
 
-        // check if last block has a possible padding value
-        if(lastBlockValue <= 16 && lastBlockValue >= 1){
-            // iterative checking of last blocks
-            for(int i = 0; i < decryptedText.length; i++){
-                if((int)decryptedText[decryptedText.length-1-i] == lastBlockValue){
-                    continue;
-                }
-                else{
-                    if (i == lastBlockValue) {
-                        hasPadding = true;
-                    }
-                    break;
-                }
-            }
-        }
-        if (hasPadding){
-            for (int i = 0; i < lastBlockValue; i++)
-                decryptedText = Arrays.copyOf(decryptedText, decryptedText.length-1);
-        }
+        for (int i = 0; i < lastBlockValue; i++)
+            decryptedText = Arrays.copyOf(decryptedText, decryptedText.length-1);
 
         return decryptedText;
     }
