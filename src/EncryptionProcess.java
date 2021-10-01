@@ -15,6 +15,7 @@ public class EncryptionProcess {
     PublicKey publicKey;
 
     public PrivateKey decryptKey() throws Exception{
+        System.out.println("Introduce tu clave para encriptar el texto");
         byte[] bytephrase;
         try {
             bytephrase = RSALibrary.generateByteSeq();
@@ -61,7 +62,7 @@ public class EncryptionProcess {
     }
 
     public static void main(String[] args) throws Exception {
-        final byte[] plaintext = "Fírmame esta".getBytes();
+        final byte[] plaintext = "Encripta esta frase".getBytes();
         RSALibrary r = new RSALibrary();
         r.generateKeys();
         EncryptionProcess ep = new EncryptionProcess();
