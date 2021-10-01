@@ -5,15 +5,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.security.SecureRandom;
-import java.security.Security;
-import java.security.Signature;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.util.Scanner;
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 
 
 public class RSALibrary {
@@ -41,17 +37,63 @@ public class RSALibrary {
 
             // TO-DO: Use KeyGen to generate a public and a private key
             // ...
+            KeyPair kp = keyGen.generateKeyPair();
+            PublicKey publicKey = kp.getPublic();
+            PrivateKey privateKey = kp.getPrivate();
+
+            byte[] bytephrase = new byte[16];
+
+            try {
+                bytephrase = generateByteSeq();
+            }catch (IllegalArgumentException e){
+                System.out.println(e.getMessage());
+                bytephrase = generateByteSeq();
+            }
 
             // TO-DO: store the public key in the file PUBLIC_KEY_FILE
             // ...
+            File publicFile = new File(PUBLIC_KEY_FILE);
+            FileOutputStream outPublic = new FileOutputStream(publicFile);
+            outPublic.write(publicKey.getEncoded());
+            outPublic.close();
 
             // TO-DO: store the private key in the file PRIVATE_KEY_FILE
             // ...
+            File privateFile = new File(PRIVATE_KEY_FILE);
+            FileOutputStream outPrivate = new FileOutputStream(privateFile);
+            SymmetricCipher cipher = new SymmetricCipher();
+            try{
+                byte[] pKbyte = cipher.encryptCBC(privateKey.getEncoded(), bytephrase);
+                outPrivate.write(pKbyte);
+                outPrivate.close();
+            }catch (Exception e){
+                System.out.println(e);
+            }
 
         } catch (NoSuchAlgorithmException e) {
             System.out.println("Exception: " + e.getMessage());
             System.exit(-1);
         }
+    }
+
+    public static byte[] generateByteSeq() throws IllegalArgumentException{
+        // pedir passphrase
+        System.out.println("Introduce la clave");
+        Scanner sc = new Scanner(System.in);
+        String phrase = sc.nextLine();
+
+        byte[] bytephrase = phrase.getBytes();
+        if (bytephrase.length < 16){
+            int n = bytephrase.length;
+            byte[] completedbp = new byte[16];
+            System.arraycopy(bytephrase, 0, completedbp, 16-n, n);
+            return completedbp;
+        }
+        else if(bytephrase.length > 16){
+            throw new IllegalArgumentException("Too long passphrase. Introduce a new one");
+        }
+
+        return bytephrase;
     }
 
 
@@ -71,6 +113,8 @@ public class RSALibrary {
 
             // TO-DO: initialize the cipher object and use it to encrypt the plaintext
             // ...
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            ciphertext = cipher.doFinal(plaintext);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,6 +138,8 @@ public class RSALibrary {
 
             // TO-DO: initialize the cipher object and use it to decrypt the ciphertext
             // ...
+            cipher.init(Cipher.DECRYPT_MODE, key);
+            plaintext = cipher.doFinal(ciphertext);
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -118,12 +164,16 @@ public class RSALibrary {
 
             // TO-DO: initialize the signature oject with the private key
             // ...
+            signature.initSign(key);
 
             // TO-DO: set plaintext as the bytes to be signed
             // ...
+            signature.update(plaintext);
 
             // TO-DO: sign the plaintext and obtain the signature (signedInfo)
             // ...
+            signedInfo = signature.sign();
+
 
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -149,12 +199,15 @@ public class RSALibrary {
 
             // TO-DO: initialize the signature object with the public key
             // ...
+            signature.initVerify(key);
 
             // TO-DO: set plaintext as the bytes to be verified
             // ...
+            signature.update(plaintext);
 
             // TO-DO: verify the signature (signed). Store the outcome in the boolean result
             // ...
+            result = signature.verify(signed);
 
         } catch (Exception ex) {
             ex.printStackTrace();
