@@ -1,6 +1,7 @@
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -23,17 +24,28 @@ public class EncryptionProcess {
             System.out.println(e.getMessage());
             bytephrase = RSALibrary.generateByteSeq();
         }
-        Path path = Paths.get("./public.key");
-        path = Paths.get("./private.key");
-        byte[] pkencoded = Files.readAllBytes(path);
 
+        try {
+            generatePrivateKey(bytephrase);
+
+        }catch (Exception e){
+            System.out.println("La clave introducida no es correcta");
+            bytephrase = RSALibrary.generateByteSeq();
+            generatePrivateKey(bytephrase);
+        }
+
+        return generatePrivateKey(bytephrase);
+
+    }
+
+    private PrivateKey generatePrivateKey(byte[] bytephrase) throws Exception{
+        Path path = Paths.get("./private.key");
+        byte[] pkencoded = Files.readAllBytes(path);
         SymmetricCipher symCip = new SymmetricCipher();
         byte[] pKbyte = symCip.decryptCBC(pkencoded, bytephrase);
         PKCS8EncodedKeySpec keyspec2 = new PKCS8EncodedKeySpec(pKbyte);
         KeyFactory keyfactory2 = KeyFactory.getInstance("RSA");
-
         return keyfactory2.generatePrivate(keyspec2);
-
     }
 
     public void encryptPlainText(byte[] plaintext, RSALibrary r, PrivateKey pk) throws Exception{
